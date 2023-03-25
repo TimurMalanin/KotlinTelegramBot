@@ -1,6 +1,6 @@
 # KotlinTelegramBot
 
-This is a KOtlin program for a Telegram bot that allows users to track Instagram accounts and receive notifications when new posts are published, as well as comment on posts, unfollow accounts, and view account timelines.
+This is a Kotlin program for a Telegram bot that allows users to track Instagram accounts and receive notifications when new posts are published, as well as comment on posts, unfollow accounts, and view account timelines.
 
 ## Getting start
 
