@@ -4,7 +4,7 @@ This is a KOtlin program for a Telegram bot that allows users to track Instagram
 
 ## Getting start
 
-Set the API_TOKEN, BOT_NAME, INST_LOGIN AND INST_PASSWORD environment variables in your system or IDE.
+Set the API_TOKEN, BOT_NAME, INST_LOGIN and INST_PASSWORD environment variables in your system or IDE.
 
 ## Usage
 
