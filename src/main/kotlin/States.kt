@@ -1,0 +1,5 @@
+package org.example
+
+internal enum class States {
+    WAITING_USERNAME, WAITING_COMMENT, WAITING_UNFOLLOW, WAITING_TIMELINE, NOT_ASSIGNED
+}
