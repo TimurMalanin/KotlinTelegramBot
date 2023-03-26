@@ -49,44 +49,39 @@ class TelegramBot internal constructor() : TelegramLongPollingBot() {
     }
 
     private fun startCase(updateChatId: String) {
-        val resourceBundle = ResourceBundle.getBundle("TelegramBotResources")
         sendMessage(updateChatId, resourceBundle.getString("StartMessage"))
     }
 
     private fun followCase(updateChatId: String) {
-        val resourceBundle = ResourceBundle.getBundle("TelegramBotResources")
         sendMessage(updateChatId, resourceBundle.getString("TrackingMessage"))
         programSate = States.WAITING_USERNAME
     }
 
     private fun showCase(updateChatId: String) {
-        val resourceBundle = ResourceBundle.getBundle("TelegramBotResources")
         val usernames = accounts.joinToString("\n") { it.targetUsername }
         val message = usernames.ifBlank {
-            resourceBundle.getString("EmptyAccountsMessage")
+            resourceBundle.getString("EmptyAccounts")
         }
         sendMessage(updateChatId, message)
     }
 
     private fun unfollowCase(updateChatId: String) {
-        val resourceBundle = ResourceBundle.getBundle("TelegramBotResources")
         sendMessage(updateChatId, resourceBundle.getString("UnfollowMessage"))
         programSate = States.WAITING_UNFOLLOW
     }
 
     private fun timelineCase(updateChatId: String) {
-        val resourceBundle = ResourceBundle.getBundle("TelegramBotResources")
         sendMessage(updateChatId, resourceBundle.getString("TimelineMessage"))
         programSate = States.WAITING_TIMELINE
     }
 
     private fun sendTimeline(update: Update) {
-        val resourceBundle = ResourceBundle.getBundle("TelegramBotResources")
         programSate = States.NOT_ASSIGNED
         val account = loadAccount(update)
-        try {
-            sendPhotos(account.timeLine(), account.chatId)
-        } catch (e: IOException) {
+        val timeLine = account.timeLine()
+        if (timeLine != null) {
+            sendPhotos(timeLine, account.chatId)
+        } else {
             sendMessage(currentAccount!!.chatId, resourceBundle.getString("FailedSendMessage"))
         }
     }
@@ -98,7 +93,6 @@ class TelegramBot internal constructor() : TelegramLongPollingBot() {
     }
 
     private fun unfollowAccount(update: Update) {
-        val resourceBundle = ResourceBundle.getBundle("TelegramBotResources")
         val unfollowUsername = update.message.text
         val chatId = update.message.chatId.toString()
         programSate = States.NOT_ASSIGNED
@@ -107,14 +101,15 @@ class TelegramBot internal constructor() : TelegramLongPollingBot() {
     }
 
     private fun commentPost(update: Update) {
-        val resourceBundle = ResourceBundle.getBundle("TelegramBotResources")
         programSate = States.NOT_ASSIGNED
-        try {
-            currentAccount!!.commentPost(update.message.text)
-            sendMessage(currentAccount!!.chatId, resourceBundle.getString("PostCommentedMessage"))
-        } catch (e: IOException) {
-            sendMessage(currentAccount!!.chatId, resourceBundle.getString("FailedCommentMessage"))
+        val comment = update.message.text
+        val reply = currentAccount?.commentPost(comment)
+        val message = if (reply != null) {
+            resourceBundle.getString("PostCommentedMessage")
+        } else {
+            resourceBundle.getString("FailedCommentMessage")
         }
+        sendMessage(currentAccount!!.chatId, message)
     }
 
     private fun loadAccount(update: Update): InstagramLoader {
@@ -126,9 +121,9 @@ class TelegramBot internal constructor() : TelegramLongPollingBot() {
     private fun checkinForNewPost(account: InstagramLoader) {
         currentAccount = account
         val url = try {
-            account.pictureUpload()
+            account.getLatestPictureUrl()
         } catch (e: IOException) {
-            sendMessage(account.chatId, "Unable to load new post")
+            sendMessage(account.chatId, resourceBundle.getString("UnableLoad"))
             null
         }
         url?.let { sendData(account.chatId, it) }
@@ -143,24 +138,25 @@ class TelegramBot internal constructor() : TelegramLongPollingBot() {
     private fun handleCallbackQuery(callbackQuery: CallbackQuery) {
         val chatId = callbackQuery.message.chatId.toString()
         when (callbackQuery.data) {
-            "likeButtonPressed" -> likeButtonAction(chatId)
+            "likeButtonPressed" -> likeButtonAction()
             "commentButtonPressed" -> commentButtonAction(chatId)
             "captionButtonPressed" -> captionButtonAction(chatId)
         }
     }
 
-    private fun likeButtonAction(chatId: String) {
-        val resourceBundle = ResourceBundle.getBundle("TelegramBotResources")
-        try {
-            currentAccount!!.likePost()
-            sendMessage(chatId, resourceBundle.getString("PostLikedMessage"))
-        } catch (e: IOException) {
-            sendMessage(currentAccount!!.chatId, resourceBundle.getString("FailedLikeMessage"))
+    private fun likeButtonAction() {
+        programSate = States.NOT_ASSIGNED
+        val reply = currentAccount?.likePost()
+        val message = if (reply != null) {
+            resourceBundle.getString("PostLikedMessage")
+        } else {
+            resourceBundle.getString("FailedLikeMessage")
         }
+        sendMessage(currentAccount!!.chatId, message)
     }
 
     private fun commentButtonAction(chatId: String) {
-        sendMessage(chatId, "Enter your comment:")
+        sendMessage(chatId, resourceBundle.getString("CommentButtonAction"))
         programSate = States.WAITING_COMMENT
     }
 
@@ -168,15 +164,17 @@ class TelegramBot internal constructor() : TelegramLongPollingBot() {
         val caption = try {
             currentAccount?.caption
         } catch (e: IOException) {
-            currentAccount?.chatId?.let { sendMessage(it, "Failed to get caption") }
+            currentAccount?.chatId?.let { sendMessage(it, resourceBundle.getString("FailedCaption")) }
             null
         }
-        sendMessage(chatId, caption ?: "No caption")
+        sendMessage(chatId, caption ?: resourceBundle.getString("FailedCaption"))
     }
 
     private fun sendData(chatId: String, URL: String) {
-        val resourceBundle = ResourceBundle.getBundle("TelegramBotResources")
-        sendMessage(currentAccount!!.chatId, currentAccount!!.targetUsername + " posed!")
+        sendMessage(
+            currentAccount!!.chatId,
+            String.format(resourceBundle.getString("PostMessage"), currentAccount!!.targetUsername)
+        )
         sendPhoto(chatId, URL)
         sendMessage(currentAccount!!.chatId, resourceBundle.getString("ButtonText"), createKeyboardMarkup())
     }
@@ -188,7 +186,7 @@ class TelegramBot internal constructor() : TelegramLongPollingBot() {
         try {
             execute(photo)
         } catch (e: TelegramApiException) {
-            sendMessage(chatId, "Failed to send photo")
+            sendMessage(chatId, resourceBundle.getString("FailedPhoto"))
         }
     }
 
@@ -200,7 +198,7 @@ class TelegramBot internal constructor() : TelegramLongPollingBot() {
         try {
             execute(message)
         } catch (e: TelegramApiException) {
-            sendMessage(chatId, "Failed to send message")
+            sendMessage(chatId, resourceBundle.getString("FailedMessage"))
         }
     }
 
@@ -223,14 +221,6 @@ class TelegramBot internal constructor() : TelegramLongPollingBot() {
         )
     }
 
-    override fun getBotUsername(): String {
-        return BOT_USERNAME
-    }
-
-    override fun getBotToken(): String {
-        return API_TOKEN
-    }
-
     private inner class MyThread : Thread() {
         private fun checkingAccountsForNewPosts() {
             for (account in accounts)
@@ -245,14 +235,23 @@ class TelegramBot internal constructor() : TelegramLongPollingBot() {
                     sleep(delay)
                 } catch (e: InterruptedException) {
                     currentThread().interrupt()
-                    System.err.println("Thread was interrupted: " + e.message)
+                    System.err.println(String.format(resourceBundle.getString("ThreadInterrupted"), e.message))
                 }
             }
         }
     }
 
     companion object {
+        private val resourceBundle = ResourceBundle.getBundle("TelegramBotResources_en_US")
         private val API_TOKEN = System.getenv("API_TOKEN")
         private val BOT_USERNAME = System.getenv("BOT_NAME")
+    }
+
+    override fun getBotUsername(): String {
+        return BOT_USERNAME
+    }
+
+    override fun getBotToken(): String {
+        return API_TOKEN
     }
 }

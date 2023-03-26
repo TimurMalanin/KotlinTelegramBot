@@ -7,50 +7,82 @@ import org.brunocvcunha.instagram4j.requests.InstagramSearchUsernameRequest
 import org.brunocvcunha.instagram4j.requests.InstagramUserFeedRequest
 import org.brunocvcunha.instagram4j.requests.payload.InstagramFeedItem
 
-
-class InstagramLoader(targetUsername: String, chatId: String) {
+class InstagramLoader(val targetUsername: String, val chatId: String) {
     private val instagram: Instagram4j = Instagram4j.builder().username(USERNAME).password(PASSWORD).build()
     private var lastPostDate = 0L
-    val targetUsername: String
-    val chatId: String
-    val caption: String = lastItem().caption.text
+    val caption: String?
 
     init {
-        this.targetUsername = targetUsername
-        this.chatId = chatId
         instagram.setup()
         instagram.login()
+        caption = getItemFromTimeline(targetUsername)?.caption?.text
     }
 
-    private fun lastItem(): InstagramFeedItem {
-        val usernameResult = instagram.sendRequest(InstagramSearchUsernameRequest(targetUsername))
-        val userId = usernameResult.user.pk
-        val timeLine = instagram.sendRequest(InstagramUserFeedRequest(userId))
-        return timeLine.items[0]
-    }
-
-    fun timeLine(): List<String> {
-        val userPk = instagram.sendRequest(InstagramSearchUsernameRequest(targetUsername)).user.pk
-        val feedResult = instagram.sendRequest(InstagramUserFeedRequest(userPk)).items
-        return feedResult.take(5.coerceAtMost(feedResult.size))
-            .map { it.getImage_versions2().getCandidates()[0].getUrl() }
-    }
-
-    fun pictureUpload(): String? {
-        val lastItem = lastItem()
-        return if (lastPostDate < lastItem.getTaken_at()) {
-            lastPostDate = lastItem.getTaken_at()
-            lastItem.getImage_versions2().getCandidates()[0].getUrl()
-        } else
+    private fun getItemFromTimeline(targetUsername: String): InstagramFeedItem? {
+        return try {
+            val usernameResult = instagram.sendRequest(InstagramSearchUsernameRequest(targetUsername))
+            val userId = usernameResult.user.pk
+            val timeLine = instagram.sendRequest(InstagramUserFeedRequest(userId))
+            timeLine.items[0]
+        } catch (e: Exception) {
+            println("Error while getting item from timeline: ${e.message}")
             null
+        }
     }
 
-    fun commentPost(text: String?) {
-        instagram.sendRequest(InstagramPostCommentRequest(lastItem().getPk(), text))
+    fun timeLine(): List<String>? {
+        return try {
+            val userPk = instagram.sendRequest(InstagramSearchUsernameRequest(targetUsername)).user.pk
+            val feedResult = instagram.sendRequest(InstagramUserFeedRequest(userPk)).items
+            feedResult.take(6.coerceAtMost(feedResult.size)).mapNotNull {
+                it.getImage_versions2()?.getCandidates()?.get(0)?.getUrl()
+            }
+        } catch (e: Exception) {
+            println("Error while getting timeline: ${e.message}")
+            null
+        }
     }
 
-    fun likePost() {
-        instagram.sendRequest(InstagramLikeRequest(lastItem().getPk()))
+    fun getLatestPictureUrl(): String? {
+        val lastItem = getItemFromTimeline(targetUsername)
+        return lastItem?.let {
+            if (lastPostDate < it.getTaken_at()) {
+                lastPostDate = it.getTaken_at()
+                it.getImage_versions2().getCandidates()[0].getUrl()
+            } else {
+                null
+            }
+        }
+    }
+
+    fun commentPost(text: String?): String? {
+        val item = getItemFromTimeline(targetUsername)
+        return try {
+            if (item != null) {
+                instagram.sendRequest(InstagramPostCommentRequest(item.getPk(), text))
+                "Success"
+            } else {
+                null
+            }
+        } catch (e: Exception) {
+            println("Error while commenting on post: ${e.message}")
+            null
+        }
+    }
+
+    fun likePost(): String? {
+        val item = getItemFromTimeline(targetUsername)
+        return try {
+            if (item != null) {
+                instagram.sendRequest(InstagramLikeRequest(item.getPk()))
+                "Success"
+            } else {
+                null
+            }
+        } catch (e: Exception) {
+            println("Error while liking post: ${e.message}")
+            null
+        }
     }
 
     companion object {
