@@ -24,7 +24,7 @@ To comment on a post, reply to the notification with your comment. To unfollow a
 
 * Telegram Bots API - The API used to interact with Telegram bots.
 * Instagram4j - The Java library used to interact with Instagram.
-* Maven - Dependency management.
+* Gradle - Dependency management.
 
 ## Authors
 
