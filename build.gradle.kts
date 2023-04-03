@@ -17,7 +17,7 @@ dependencies {
     testImplementation(kotlin("test"))
     implementation("com.google.googlejavaformat:google-java-format:1.16.0")
     implementation("org.brunocvcunha.instagram4j:instagram4j:1.14")
-    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.6.4") //versions to settings.gradle
+    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.6.4")
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.6.4")
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.6.4")
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.6.4")

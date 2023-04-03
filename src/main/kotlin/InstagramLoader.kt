@@ -56,13 +56,10 @@ class InstagramLoader(val targetUsername: String, val chatId: String) {
     }
 
     fun commentPost(text: String?): String? {
-        val item = getItemFromTimeline(targetUsername)
         return try {
-            if (item != null) {
+            getItemFromTimeline(targetUsername)?.let { item ->
                 instagram.sendRequest(InstagramPostCommentRequest(item.getPk(), text))
-                "Success"
-            } else {
-                null
+                COMMENT_SUCCESSFULLY_MESSAGE
             }
         } catch (e: Exception) {
             println("Error while commenting on post: ${e.message}")
@@ -71,13 +68,10 @@ class InstagramLoader(val targetUsername: String, val chatId: String) {
     }
 
     fun likePost(): String? {
-        val item = getItemFromTimeline(targetUsername)
         return try {
-            if (item != null) {
-                instagram.sendRequest(InstagramLikeRequest(item.getPk()))
-                "Success"
-            } else {
-                null
+            getItemFromTimeline(targetUsername)?.let { item ->
+                instagram.sendRequest(InstagramLikeRequest(item.pk))
+                LIKED_SUCCESSFULLY_MESSAGE
             }
         } catch (e: Exception) {
             println("Error while liking post: ${e.message}")
@@ -86,6 +80,8 @@ class InstagramLoader(val targetUsername: String, val chatId: String) {
     }
 
     companion object {
+        private const val COMMENT_SUCCESSFULLY_MESSAGE = "Comment liked successfully"
+        private const val LIKED_SUCCESSFULLY_MESSAGE = "Post liked successfully"
         private val USERNAME = System.getenv("INST_LOGIN")
         private val PASSWORD = System.getenv("INST_PASSWORD")
     }

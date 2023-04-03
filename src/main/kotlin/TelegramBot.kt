@@ -96,7 +96,7 @@ class TelegramBot internal constructor() : TelegramLongPollingBot() {
         val unfollowUsername = update.message.text
         val chatId = update.message.chatId.toString()
         programSate = States.NOT_ASSIGNED
-        accounts.removeIf { it: InstagramLoader -> it.targetUsername == unfollowUsername }
+        accounts.removeIf { it.targetUsername == unfollowUsername }
         sendMessage(chatId, String.format(resourceBundle.getString("UnfollowExecute"), unfollowUsername))
     }
 
@@ -118,14 +118,9 @@ class TelegramBot internal constructor() : TelegramLongPollingBot() {
         return InstagramLoader(targetUsername, chatId)
     }
 
-    private fun checkinForNewPost(account: InstagramLoader) {
+    private fun checkForNewPost(account: InstagramLoader) {
         currentAccount = account
-        val url = try {
-            account.getLatestPictureUrl()
-        } catch (e: IOException) {
-            sendMessage(account.chatId, resourceBundle.getString("UnableLoad"))
-            null
-        }
+        val url = account.getLatestPictureUrl()
         url?.let { sendData(account.chatId, it) }
     }
 
@@ -164,7 +159,6 @@ class TelegramBot internal constructor() : TelegramLongPollingBot() {
         val caption = try {
             currentAccount?.caption
         } catch (e: IOException) {
-            currentAccount?.chatId?.let { sendMessage(it, resourceBundle.getString("FailedCaption")) }
             null
         }
         sendMessage(chatId, caption ?: resourceBundle.getString("FailedCaption"))
@@ -222,14 +216,14 @@ class TelegramBot internal constructor() : TelegramLongPollingBot() {
     }
 
     private inner class MyThread : Thread() {
-        private fun checkingAccountsForNewPosts() {
+        private fun checkAccountsForNewPosts() {
             for (account in accounts)
-                checkinForNewPost(account)
+                checkForNewPost(account)
         }
 
         override fun run() {
             while (true) {
-                checkingAccountsForNewPosts()
+                checkAccountsForNewPosts()
                 try {
                     val delay: Long = 30000
                     sleep(delay)
